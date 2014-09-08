@@ -6,7 +6,7 @@ def main():
     if Twitter.login('account', 'passowrd'):
     	print('Signed into %s'%  Twitter.Account)
         
-    	# for a in Twitter.getFollowing('leagues', True):
+    	# for a in Twitter.getFollowing('lol', True):
     	# 	print(a)
 
     	# Messages = ['Message 1','Message2']
