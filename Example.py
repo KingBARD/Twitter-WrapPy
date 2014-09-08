@@ -1,4 +1,4 @@
-import TwitterClient,requests
+import TwitterClient
 
 def main():
     Twitter = TwitterClient.TwitterClient()
