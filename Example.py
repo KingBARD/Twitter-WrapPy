@@ -3,8 +3,9 @@ import TwitterClient
 def main():
     Twitter = TwitterClient.TwitterClient()
 
-    if Twitter.login('account', 'passowrd'):
+    if Twitter.login('account', 'password'):
     	print('Signed into %s'%  Twitter.Account)
+        
         
     	# for a in Twitter.getFollowing('lol', True):
     	# 	print(a)

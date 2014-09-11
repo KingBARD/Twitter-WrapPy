@@ -29,6 +29,7 @@ class TwitterClient():
     def getFollowing(self, link, followers = False):
 
         Links = []
+
         if not followers:
             link = 'https://mobile.twitter.com/{0}/following'.format(link)
         else:
@@ -41,17 +42,22 @@ class TwitterClient():
             Source = S.text.encode('utf-8')
 
             return Source
-        def Regex(lol):
+
+        def Regex(source):
+
             pattern = re.compile(r'<a href="/(.*?)"><span class="username"><span>@</span>(.*?)</span></a>',re.MULTILINE) 
-            for (a,b) in re.findall(pattern,lol):
+
+            for (a,b) in re.findall(pattern,source):
                 Links.append('https://www.twitter.com/' + a)
-            if 'Show more people' in lol:
+
+            if 'Show more people' in source:
                 patt = re.compile(r'<div class="w-button-more"><a href="(.*?)">Show more people</a></div>',re.MULTILINE)
-                a = re.search(patt, lol).group(1)
-                a = 'https://mobile.twitter.com' + a
-                Regex(get(a)) 
+                nextPage = re.search(patt, source).group(1)
+                nextPage = 'https://mobile.twitter.com' + nextPage
+                Regex(get(nextPage)) 
 
         Source = get(link)
+
         Regex(Source)
 
         return Links
@@ -72,20 +78,26 @@ class TwitterClient():
                 Source = S.text.encode('utf-8')
 
                 return Source
-            except:
+
+            except:  
                 pass
 
-        def Regex(lol):
+        def Regex(source):
+
             pattern = re.compile(r'<a name="(.*?)" href="(.*?)">(.*?)</a>', re.MULTILINE)
             
-            for (a,l,c) in re.findall(pattern, lol):
+            for (a,l,c) in re.findall(pattern, source):
                 Links.append('http://www.twitter.com' + l)
-            if 'Load older' in lol:
+
+            if 'Load older' in source:
                 patt = re.compile(r'<a href="(.*?)">Load older Tweets</a></div>',re.MULTILINE)
-                a = re.search(patt, lol).group(1)
+
+                a = re.search(patt, source).group(1)
+
                 Regex(getTimeline(a)) 
 
         Source = getTimeline(link)
+
         Regex(Source)
 
         return Links
@@ -132,7 +144,7 @@ class TwitterClient():
                 'user[description]':desc
             }
 
-        response = Session.post('https://twitter.com/i/profiles/update',headers=POSTHEADERS,data=data)
+        response = Session.post('https://twitter.com/i/profiles/update', headers=POSTHEADERS, data=data)
 
         if 'Thanks, your settings have been saved.' in response.text:
             return True
@@ -149,7 +161,7 @@ class TwitterClient():
                  'auth_password':self.Password
                 }
 
-        response = Session.post('https://twitter.com/settings/accounts/update',data=data,headers=POSTHEADERS)
+        response = Session.post('https://twitter.com/settings/accounts/update', data=data, headers=POSTHEADERS)
 
 
         if 'That username has been taken. Please choose another.' in response.text:
@@ -169,7 +181,7 @@ class TwitterClient():
          'user[email]':email,
          'auth_password': self.Password}
 
-        response = Session.post('https://twitter.com/settings/accounts/update',data=data,headers=POSTHEADERS)
+        response = Session.post('https://twitter.com/settings/accounts/update', data=data, headers=POSTHEADERS)
 
         if 'This email address is already registered.' in response.text:
             return False
@@ -191,7 +203,7 @@ class TwitterClient():
         'text':message
         }
 
-        response = Session.post('https://twitter.com/i/direct_messages/new',data=data,headers=POSTHEADERS)
+        response = Session.post('https://twitter.com/i/direct_messages/new', data=data, headers=POSTHEADERS)
 
         if message in response.text:
             return True
@@ -206,20 +218,19 @@ class TwitterClient():
         'id':tweet
         }
 
-        response = Session.post('https://twitter.com/i/tweet/destroy',data=data,headers=POSTHEADERS,allow_redirects=False)
-
+        response = Session.post('https://twitter.com/i/tweet/destroy',data=data, headers=POSTHEADERS, allow_redirects=False)
+ 
         if 'Your tweet has been deleted.' in response.text:
             return True
         elif response.status_code == 404:
-            return False + 404
+            return False
         else:
             return False
 
-
     def fav(self, tweet, delete = False):
 
-
         tweet = tweet.split('/')[5]
+        print(tweet)
         if delete:
             url = 'https://twitter.com/i/tweet/unfavorite'
         else:
@@ -229,8 +240,12 @@ class TwitterClient():
                     'id': tweet
                 }
 
-        response = Session.post(url,headers=POSTHEADERS,data=data)
+        response = Session.post(url, headers=POSTHEADERS, data=data)
 
+        if 'Favorited 1 time' in response.text:
+            return True
+        else:
+            return False
 
     def follow(self, user, follow = True):
 
@@ -250,10 +265,10 @@ class TwitterClient():
         'user_id':userID}
 
 
-        response = Session.post(url,headers=POSTHEADERS,data=data)
+        response = Session.post(url, headers=POSTHEADERS, data=data)
 
         if response.status_code == 404:
-            return 404
+            return False
         if response.status_code == 200:
             return True
 
@@ -287,6 +302,11 @@ class TwitterClient():
 
         response = Session.post(url,headers=POSTHEADERS,data=data)
 
+        if 'Tweets' in response.text:
+            return True
+        else:
+            return False
+
 
     def tweet(self, message, reply = False, statusID = str):
 
@@ -305,7 +325,7 @@ class TwitterClient():
         else:
             data.update({'status':message})
 
-        response = Session.post('https://twitter.com/i/tweet/create',data=data,headers=POSTHEADERS)
+        response = Session.post('https://twitter.com/i/tweet/create', data=data, headers=POSTHEADERS)
 
         errmsg = 'Oh dear! You already tweeted that'
 
@@ -316,9 +336,10 @@ class TwitterClient():
         
 
     def login(self, account, password):
+
         account = account.lower()
 
-        request = Session.get('https://www.twitter.com/',verify=False,
+        request = Session.get('https://www.twitter.com/',
                             headers={'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Host': 'twitter.com',})
         
         Account,self.Account = account,account
@@ -336,10 +357,7 @@ class TwitterClient():
             })
 
 
-
-
-        response = Session.post('https://www.twitter.com/sessions',verify=False,
-                        headers=POSTHEADERS,data=data)
+        response = Session.post('https://www.twitter.com/sessions', headers=POSTHEADERS, data=data)
 
         pageSource = response.text.lower()
 
