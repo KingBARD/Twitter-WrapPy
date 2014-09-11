@@ -211,6 +211,7 @@ class TwitterClient():
             return False
 
     def deletetweet(self, tweet):
+        
         tweet = tweet.split('/')[5]
 
         data = {'_method':'DELETE',
@@ -276,9 +277,7 @@ class TwitterClient():
     def getTrends(self):#Login not required
 
         request = requests.get('https://mobile.twitter.com/trends')
-
         trends = []
-
         pattern = re.compile('<a href=\"/search(.*?)">\n(.*?)\n')
 
         for match in re.findall(pattern, request.text):
@@ -289,6 +288,7 @@ class TwitterClient():
         return trends
 
     def reTweet(self, tweet, retweet = True):
+
         tweet = tweet.split('/')[5]
 
         if not retweet:
