@@ -335,7 +335,7 @@ class TwitterClient():
         
         Account,self.Account = account,account
         Password,self.Password = password,password
-        self.Token,self.Token = re.search('value="(.*?)">',request.text).group(1),re.search('value="(.*?)">',request.text).group(1)
+        Token,self.Token = re.search('value="(.*?)">',request.text).group(1),re.search('value="(.*?)">',request.text).group(1)
 
         data = urllib.urlencode({
 
