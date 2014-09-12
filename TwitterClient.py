@@ -1,11 +1,4 @@
-#-------------------------------------------------------------------------------
-# Name:        TwitterClient
-# Created:     31/08/2014
-# Copyright:   (c) KingBard 2014
-# Licence:     MIT
-#-------------------------------------------------------------------------------
-
-import requests,re,urllib
+import requests, re, urllib
 
 POSTHEADERS = {'Host': 'twitter.com',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -26,6 +19,7 @@ global Token
 
 class TwitterClient():
 
+    ##What a piece of shit this is
     def getFollowing(self, link, followers = False):
 
         Links = []
@@ -64,7 +58,7 @@ class TwitterClient():
 
                 
 
-    ##What a piece of shit this is
+    ##Also a piece of shit
     def getAllTweetLinks(self, link):
 
         Links = []
@@ -190,9 +184,6 @@ class TwitterClient():
         else:
             return False
 
-
-
-    #END TODO
 
     def directMessage(self, user, message):
 
