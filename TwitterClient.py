@@ -1,3 +1,5 @@
+##ToDo~~Replace regex with bsoup
+
 import requests, re, urllib
 
 POSTHEADERS = {'Host': 'twitter.com',
@@ -13,90 +15,67 @@ USERAGENT = {'User-Agent':'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:31.0) Gecko/20
 
 Session = requests.session()
 
-global Password
-global Account
-global Token
+class LoginFailure(Exception):
+    pass
+class AlreadyTweeted(Exception):
+    pass
 
-class TwitterClient():
+class TwitterClient(object):
 
-    ##What a piece of shit this is
-    def getFollowing(self, link, followers = False):
+    def get_tweets(self, link, followers = False):
+            link = 'https://mobile.twitter.com/' + link
+            Links = []
+            Tweets = []
+            source = requests.get(link).text.encode('utf-8')
+
+            while 'Load older' in source:
+                
+                patt = re.compile(r'<a href="(.*?)">Load older Tweets</a></div>',re.MULTILINE)
+                a = re.search(patt, source).group(1)
+                source = requests.get(a).text.encode('utf-8')
+                Links.append(a)
+
+            for link in Links:
+                Source = requests.get(link).text
+                pattern = re.compile(r'<a name="(.*?)" href="(.*?)">(.*?)</a>', re.MULTILINE)
+                
+                for a in re.findall(pattern, Source):
+                    Tweets.append('http://www.twitter.com' + a[1])
+
+            return Tweets
+
+
+    def getall_tweet_links(self, link, followers = True):
 
         Links = []
+        Followers = []
 
         if not followers:
             link = 'https://mobile.twitter.com/{0}/following'.format(link)
         else:
             link = 'https://mobile.twitter.com/{0}/followers'.format(link)
 
-        def get(url):
+        Links.append(link)
+        source = requests.get(link).text.encode('utf-8')
 
-            S = Session.get(url)
 
-            Source = S.text.encode('utf-8')
+        while 'Show more people' in source:
+            patt = re.compile(r'<div class="w-button-more"><a href="(.*?)">Show more people</a></div>',re.MULTILINE)
+            nextPage = re.search(patt, source).group(1)
+            nextPage = 'https://mobile.twitter.com' + nextPage
+            source = requests.get(nextPage).text.encode('utf-8')
+            Links.append(nextPage)
 
-            return Source
-
-        def Regex(source):
-
+        for a in Links:
+            Source = requests.get(a).text
             pattern = re.compile(r'<a href="/(.*?)"><span class="username"><span>@</span>(.*?)</span></a>',re.MULTILINE) 
 
-            for (a,b) in re.findall(pattern,source):
-                Links.append('https://www.twitter.com/' + a)
+            for a in re.findall(pattern,Source):
+                Followers.append('https://www.twitter.com/' + a[1])
 
-            if 'Show more people' in source:
-                patt = re.compile(r'<div class="w-button-more"><a href="(.*?)">Show more people</a></div>',re.MULTILINE)
-                nextPage = re.search(patt, source).group(1)
-                nextPage = 'https://mobile.twitter.com' + nextPage
-                Regex(get(nextPage)) 
+        return Followers
 
-        Source = get(link)
-
-        Regex(Source)
-
-        return Links
-
-                
-
-    ##Also a piece of shit
-    def getAllTweetLinks(self, link):
-
-        Links = []
-
-        link = 'https://mobile.twitter.com/' + link
-
-        def getTimeline(url):
-            try:
-                S = Session.get(url)
-
-                Source = S.text.encode('utf-8')
-
-                return Source
-
-            except:  
-                pass
-
-        def Regex(source):
-
-            pattern = re.compile(r'<a name="(.*?)" href="(.*?)">(.*?)</a>', re.MULTILINE)
-            
-            for (a,l,c) in re.findall(pattern, source):
-                Links.append('http://www.twitter.com' + l)
-
-            if 'Load older' in source:
-                patt = re.compile(r'<a href="(.*?)">Load older Tweets</a></div>',re.MULTILINE)
-
-                a = re.search(patt, source).group(1)
-
-                Regex(getTimeline(a)) 
-
-        Source = getTimeline(link)
-
-        Regex(Source)
-
-        return Links
-
-    def changeUrl(self, url):
+    def change_url(self, url):
 
         data = {
             'authenticity_token':self.Token,
@@ -107,13 +86,12 @@ class TwitterClient():
 
         response = Session.post('https://twitter.com/i/profiles/update',headers=POSTHEADERS,data=data,allow_redirects=False)
 
-        if 'Url is not valid' in response.text:
-            return False
-
-        elif 'user_url' in response.text:
+        if 'user_url' in response.text:
             return True
 
-    def changeLocation(self, loc):
+        return False
+
+    def change_location(self, loc):
 
         data = {
             'authenticity_token':self.Token,
@@ -126,10 +104,10 @@ class TwitterClient():
 
         if 'Thanks, your settings have been saved.' in response.text:
             return True
-        else:
-            return False
+        
+        return False
 
-    def changeDescription(self, desc):
+    def change_description(self, desc):
 
         data = {
                 'authenticity_token':self.Token,
@@ -142,11 +120,11 @@ class TwitterClient():
 
         if 'Thanks, your settings have been saved.' in response.text:
             return True
-        else:
-            return False
+
+        return False
 
 
-    def changeUsername(self, newusername):
+    def change_username(self, newusername):
 
         data = {
                 '_method':'PUT',
@@ -157,17 +135,13 @@ class TwitterClient():
 
         response = Session.post('https://twitter.com/settings/accounts/update', data=data, headers=POSTHEADERS)
 
-
-        if 'That username has been taken. Please choose another.' in response.text:
-            return False
-        elif 'Thanks, your settings have been saved.' in response.text:
+        if 'Thanks, your settings have been saved.' in response.text:
             return True
-        else:
-            return False
+            
+        return False
 
 
-
-    def changeEmail(self, email):
+    def change_email(self, email):
 
         data = {'_method':'PUT',
         'authenticity_token': self.Token,
@@ -177,15 +151,13 @@ class TwitterClient():
 
         response = Session.post('https://twitter.com/settings/accounts/update', data=data, headers=POSTHEADERS)
 
-        if 'This email address is already registered.' in response.text:
-            return False
-        elif 'A message has been sent to you to confirm your new email address.' in response.text:
+        if 'A message has been sent to you to confirm your new email address.' in response.text:
             return True
-        else:
-            return False
+
+        return False
 
 
-    def directMessage(self, user, message):
+    def direct_message(self, user, message):
 
         data = {'authenticity_token': self.Token,
         'lastMsgId':'',
@@ -198,10 +170,10 @@ class TwitterClient():
 
         if message in response.text:
             return True
-        elif response.status_code == 404:
-            return False
 
-    def deletetweet(self, tweet):
+        return False
+
+    def delete_tweet(self, tweet):
         
         tweet = tweet.split('/')[5]
 
@@ -214,15 +186,13 @@ class TwitterClient():
  
         if 'Your tweet has been deleted.' in response.text:
             return True
-        elif response.status_code == 404:
-            return False
-        else:
-            return False
+
+        return False
 
     def fav(self, tweet, delete = False):
 
         tweet = tweet.split('/')[5]
-        print(tweet)
+
         if delete:
             url = 'https://twitter.com/i/tweet/unfavorite'
         else:
@@ -259,13 +229,13 @@ class TwitterClient():
 
         response = Session.post(url, headers=POSTHEADERS, data=data)
 
-        if response.status_code == 404:
-            return False
         if response.status_code == 200:
             return True
 
+        return False 
 
-    def getTrends(self):#Login not required
+
+    def get_trends(self):#Login not required
 
         request = requests.get('https://mobile.twitter.com/trends')
         trends = []
@@ -278,7 +248,7 @@ class TwitterClient():
 
         return trends
 
-    def reTweet(self, tweet, retweet = True):
+    def retweet(self, tweet, retweet = True):
 
         tweet = tweet.split('/')[5]
 
@@ -291,12 +261,12 @@ class TwitterClient():
                 'id':tweet
                 }
 
-        response = Session.post(url,headers=POSTHEADERS,data=data)
+        response = Session.post(url,headers=POSTHEADERS, data=data)
 
         if 'Tweets' in response.text:
             return True
-        else:
-            return False
+
+        return False
 
 
     def tweet(self, message, reply = False, statusID = str):
@@ -319,11 +289,13 @@ class TwitterClient():
         response = Session.post('https://twitter.com/i/tweet/create', data=data, headers=POSTHEADERS)
 
         errmsg = 'Oh dear! You already tweeted that'
-
-        if errmsg in response.text or response.status_code == 404:
-            return False
-        elif response.status_code == 200:
+        if errmsg in response:
+            raise AlreadyTweeted('You already tweeted that!')
+            return
+        if response.status_code == 200:
             return True
+
+        return False
         
 
     def login(self, account, password):
@@ -333,9 +305,9 @@ class TwitterClient():
         request = Session.get('https://www.twitter.com/',
                             headers={'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Host': 'twitter.com',})
         
-        Account,self.Account = account,account
-        Password,self.Password = password,password
-        Token,self.Token = re.search('value="(.*?)">',request.text).group(1),re.search('value="(.*?)">',request.text).group(1)
+        self.Account = account
+        self.Password = password
+        self.Token = re.search('value="(.*?)">',request.text).group(1)
 
         data = urllib.urlencode({
 
@@ -355,4 +327,6 @@ class TwitterClient():
         if 'user-style-' + account in pageSource:
             return True
         else:
-            return False
+            raise LoginFailure('Login failed check password/username')
+
+        return False
